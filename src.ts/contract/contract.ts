@@ -619,8 +619,15 @@ async function emit(contract: BaseContract, event: ContractEventName, args: Arra
     return await resultPromise;
 }
 
+type InterfaceArg = Interface | InterfaceAbi;
+
+type InferFunctionName<FunctionType extends string> = FunctionType extends `function ${infer Name}(${string}` ? Name : never;
+
+type InferFunctions<InterfaceType extends InterfaceArg> = InterfaceType extends ReadonlyArray<string> ?
+    InferFunctionName<InterfaceType[number]> : string;
+
 const passProperties = [ "then" ];
-export class BaseContract implements Addressable, EventEmitterable<ContractEventName> {
+export class BaseContract<InterfaceType extends InterfaceArg = InterfaceArg> implements Addressable, EventEmitterable<ContractEventName> {
     /**
      *  The target to connect to.
      *
@@ -664,7 +671,7 @@ export class BaseContract implements Addressable, EventEmitterable<ContractEvent
      *  optionally connected to a %%runner%% to perform operations on behalf
      *  of.
      */
-    constructor(target: string | Addressable, abi: Interface | InterfaceAbi, runner?: null | ContractRunner, _deployTx?: null | TransactionResponse) {
+    constructor(target: string | Addressable, abi: InterfaceType, runner?: null | ContractRunner, _deployTx?: null | TransactionResponse) {
         assertArgument(typeof(target) === "string" || isAddressable(target),
             "invalid value for Contract target", "target", target);
 
@@ -861,7 +868,7 @@ export class BaseContract implements Addressable, EventEmitterable<ContractEvent
      *  method name conflicts with a JavaScript name such as ``prototype`` or
      *  when using a Contract programatically.
      */
-    getFunction<T extends ContractMethod = ContractMethod>(key: string | FunctionFragment): T {
+    getFunction<T extends ContractMethod = ContractMethod>(key: InferFunctions<InterfaceType> | FunctionFragment): T {
         if (typeof(key) !== "string") { key = key.format(); }
         const func = buildWrappedMethod(this, key);
         return <T>func;
@@ -1068,11 +1075,15 @@ export class BaseContract implements Addressable, EventEmitterable<ContractEvent
     }
 }
 
-function _ContractBase(): new (target: string, abi: Interface | InterfaceAbi, runner?: null | ContractRunner) => BaseContract & Omit<ContractInterface, keyof BaseContract> {
+function _ContractBase(): new <InterfaceType extends InterfaceArg = InterfaceArg>(target: string, abi: InterfaceType, runner?: null | ContractRunner) => BaseContract<InterfaceType> & Omit<ContractInterface, keyof BaseContract> {
     return BaseContract as any;
 }
 
 /**
  *  A [[BaseContract]] with no type guards on its methods or events.
  */
-export class Contract extends _ContractBase() { }
+export class Contract<InterfaceType extends InterfaceArg = InterfaceArg> extends _ContractBase()<InterfaceType> { }
+
+const h = new Contract("0x0", ["function hiya() external returns (uint256)"] as const);
+type Args2 = typeof h.getFunction
+``

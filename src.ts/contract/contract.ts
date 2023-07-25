@@ -626,6 +626,21 @@ type InferFunctionName<FunctionType extends string> = FunctionType extends `func
 type InferFunctions<InterfaceType extends InterfaceArg> = InterfaceType extends ReadonlyArray<string> ?
     InferFunctionName<InterfaceType[number]> : string;
 
+type StringToType = {
+  '': void;
+  'uint256': bigint;
+  'address': string;
+}
+
+type CommaSplit<Args extends string> = Args extends `${infer Arg}, ${infer Rest}` ? 
+[ Arg extends keyof StringToType ? StringToType[Arg] : unknown, ...CommaSplit<Rest> ] : 
+[ Args extends keyof StringToType ? StringToType[Args] : unknown ];
+
+type InferArgs<InterfaceType extends InterfaceArg, MethodName extends InferFunctions<InterfaceType>> =
+InterfaceType extends ReadonlyArray<string> ? 
+(InterfaceType[number] & `function ${MethodName}(${string})${string}returns ${string}`) extends `function ${MethodName}(${infer Args})${string}returns ${string}` ? CommaSplit<Args> : never : 
+Array<any>[];
+
 const passProperties = [ "then" ];
 export class BaseContract<InterfaceType extends InterfaceArg = InterfaceArg> implements Addressable, EventEmitterable<ContractEventName> {
     /**
@@ -868,7 +883,8 @@ export class BaseContract<InterfaceType extends InterfaceArg = InterfaceArg> imp
      *  method name conflicts with a JavaScript name such as ``prototype`` or
      *  when using a Contract programatically.
      */
-    getFunction<T extends ContractMethod = ContractMethod>(key: InferFunctions<InterfaceType> | FunctionFragment): T {
+    getFunction<MethodName extends InferFunctions<InterfaceType>, 
+    T extends ContractMethod<InferArgs<InterfaceType, MethodName>> = ContractMethod<InferArgs<InterfaceType, MethodName>>>(key: MethodName | FunctionFragment): T {
         if (typeof(key) !== "string") { key = key.format(); }
         const func = buildWrappedMethod(this, key);
         return <T>func;
@@ -1084,6 +1100,8 @@ function _ContractBase(): new <InterfaceType extends InterfaceArg = InterfaceArg
  */
 export class Contract<InterfaceType extends InterfaceArg = InterfaceArg> extends _ContractBase()<InterfaceType> { }
 
-const h = new Contract("0x0", ["function hiya() external returns (uint256)"] as const);
-type Args2 = typeof h.getFunction
-``
+// const h = new Contract("0x0", ["function hiya() external returns (uint256)", "function balanceOf(address, uint256) view returns (uint256)"] as const);
+// type Args2 = typeof h.getFunction;
+// type Args3 = InferArgs< ["function hiya() external returns (uint256)", "function balanceOf(address, uint256) view returns (uint256)"], 'balanceOf'>
+// type A = ContractMethodArgs<Args3>
+// let a = h.getFunction("balanceOf");a("0x0", 1).then((a) => a[0].toHexString())

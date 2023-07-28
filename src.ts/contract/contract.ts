@@ -621,26 +621,215 @@ async function emit(contract: BaseContract, event: ContractEventName, args: Arra
 
 type InterfaceArg = Interface | InterfaceAbi;
 
-type InferFunctionName<FunctionType extends string> = FunctionType extends `function ${infer Name}(${string}` ? Name : never;
+type InferFunctionName<FunctionType extends string> = FunctionType extends `function ${infer Name}(${string})${infer Modifiers}` ? 
+  Modifiers extends `${string}${'private' | 'internal'}${string}` ? never : // exclude functions that cant be called
+    Name : never;
 
 type InferFunctions<InterfaceType extends InterfaceArg> = InterfaceType extends ReadonlyArray<string> ?
     InferFunctionName<InterfaceType[number]> : string;
 
 type StringToType = {
-  '': void;
+  'uint': bigint;
+  'uint8': bigint;
+  'uint16': bigint;
+  'uint24': bigint;
+  'uint32': bigint;
+  'uint40': bigint;
+  'uint48': bigint;
+  'uint56': bigint;
+  'uint64': bigint;
+  'uint72': bigint;
+  'uint80': bigint;
+  'uint88': bigint;
+  'uint96': bigint;
+  'uint104': bigint;
+  'uint112': bigint;
+  'uint120': bigint;
+  'uint128': bigint;
+  'uint136': bigint;
+  'uint144': bigint;
+  'uint152': bigint;
+  'uint160': bigint;
+  'uint168': bigint;
+  'uint176': bigint;
+  'uint184': bigint;
+  'uint192': bigint;
+  'uint200': bigint;
+  'uint208': bigint;
+  'uint216': bigint;
+  'uint224': bigint;
+  'uint232': bigint;
+  'uint240': bigint;
+  'uint248': bigint;
   'uint256': bigint;
+  'int': bigint;
+  'int8': bigint;
+  'int16': bigint;
+  'int24': bigint;
+  'int32': bigint;
+  'int40': bigint;
+  'int48': bigint;
+  'int56': bigint;
+  'int64': bigint;
+  'int72': bigint;
+  'int80': bigint;
+  'int88': bigint;
+  'int96': bigint;
+  'int104': bigint;
+  'int112': bigint;
+  'int120': bigint;
+  'int128': bigint;
+  'int136': bigint;
+  'int144': bigint;
+  'int152': bigint;
+  'int160': bigint;
+  'int168': bigint;
+  'int176': bigint;
+  'int184': bigint;
+  'int192': bigint;
+  'int200': bigint;
+  'int208': bigint;
+  'int216': bigint;
+  'int224': bigint;
+  'int232': bigint;
+  'int240': bigint;
+  'int248': bigint;
+  'int256': bigint;
   'address': string;
+  'string': string;
+  'bool': boolean;
+
+  'uint[]': bigint[];
+  'uint8[]': bigint[];
+  'uint16[]': bigint[];
+  'uint24[]': bigint[];
+  'uint32[]': bigint[];
+  'uint40[]': bigint[];
+  'uint48[]': bigint[];
+  'uint56[]': bigint[];
+  'uint64[]': bigint[];
+  'uint72[]': bigint[];
+  'uint80[]': bigint[];
+  'uint88[]': bigint[];
+  'uint96[]': bigint[];
+  'uint104[]': bigint[];
+  'uint112[]': bigint[];
+  'uint120[]': bigint[];
+  'uint128[]': bigint[];
+  'uint136[]': bigint[];
+  'uint144[]': bigint[];
+  'uint152[]': bigint[];
+  'uint160[]': bigint[];
+  'uint168[]': bigint[];
+  'uint176[]': bigint[];
+  'uint184[]': bigint[];
+  'uint192[]': bigint[];
+  'uint200[]': bigint[];
+  'uint208[]': bigint[];
+  'uint216[]': bigint[];
+  'uint224[]': bigint[];
+  'uint232[]': bigint[];
+  'uint240[]': bigint[];
+  'uint248[]': bigint[];
+  'uint256[]': bigint[];
+  'int[]': bigint[];
+  'int8[]': bigint[];
+  'int16[]': bigint[];
+  'int24[]': bigint[];
+  'int32[]': bigint[];
+  'int40[]': bigint[];
+  'int48[]': bigint[];
+  'int56[]': bigint[];
+  'int64[]': bigint[];
+  'int72[]': bigint[];
+  'int80[]': bigint[];
+  'int88[]': bigint[];
+  'int96[]': bigint[];
+  'int104[]': bigint[];
+  'int112[]': bigint[];
+  'int120[]': bigint[];
+  'int128[]': bigint[];
+  'int136[]': bigint[];
+  'int144[]': bigint[];
+  'int152[]': bigint[];
+  'int160[]': bigint[];
+  'int168[]': bigint[];
+  'int176[]': bigint[];
+  'int184[]': bigint[];
+  'int192[]': bigint[];
+  'int200[]': bigint[];
+  'int208[]': bigint[];
+  'int216[]': bigint[];
+  'int224[]': bigint[];
+  'int232[]': bigint[];
+  'int240[]': bigint[];
+  'int248[]': bigint[];
+  'int256[]': bigint[];
+  'address[]': string[];
+  'string[]': string[];
+  'bool[]': boolean[];
 }
 
-type CommaSplit<Args extends string> = Args extends `${infer Arg}, ${infer Rest}` ? 
-[ Arg extends keyof StringToType ? StringToType[Arg] : unknown, ...CommaSplit<Rest> ] : 
-[ Args extends keyof StringToType ? StringToType[Args] : unknown ];
+type GetElement<Arg extends string> = 
+  (Arg & `${keyof StringToType} ${string}`) extends `${infer Arg_ extends keyof StringToType} ${string}` ? 
+    StringToType[Arg_] : 
+    (Arg & `${string}${keyof StringToType}${string}`) extends `${string}${infer Arg_ extends keyof StringToType}${string}` ? 
+      StringToType[Arg_] : unknown;
 
-type InferArgs<InterfaceType extends InterfaceArg, MethodName extends InferFunctions<InterfaceType>> =
-InterfaceType extends ReadonlyArray<string> ? 
-(InterfaceType[number] & `function ${MethodName}(${string})${string}returns ${string}`) extends `function ${MethodName}(${infer Args})${string}returns ${string}` ? CommaSplit<Args> : never : 
-Array<any>[];
+type CommaSplit<Args extends string> = Args extends '' ? [] :
+  Args extends `tuple(${infer Rest}` ? [EvalTuple<Rest>] :
+  Args extends `${infer Arg}, ${infer Rest}` ? 
+  [GetElement<Arg>, ...CommaSplit<Rest>] : 
+  [GetElement<Args>];
 
+type Eval<T extends string> = T extends ` ${infer U}` ? Eval<U>
+  : T extends `${'tuple('}${infer U}` ? EvalTuple<U>
+  : never;
+
+type EvalTuple<T extends string, A extends string[] = []> = T extends ` ${infer U}` ? 
+  EvalTuple<U, A>
+  : T extends `)${infer U}` ? [A, U]
+  : T extends `,${infer U}` ? EvalTuple<U, A>
+  : Eval<T> extends [infer V extends string, infer U extends string] ? EvalTuple<U, [...A, V]> 
+  : false
+
+type InferArgs<
+InterfaceType extends InterfaceArg, 
+MethodName extends InferFunctions<InterfaceType>
+> = InterfaceType extends ReadonlyArray<string> 
+  ? (InterfaceType[number] & `function ${MethodName}(${string})`) extends `function ${MethodName}(${infer Args})` ? CommaSplit<Args> : never : 
+  any[];
+
+type InferReturn<
+	InterfaceType extends InterfaceArg,
+	MethodName extends InferFunctions<InterfaceType>
+> = InterfaceType extends ReadonlyArray<string>
+	? (InterfaceType[number] & `function ${MethodName}(${string})${string}returns (${string})`) extends `function ${MethodName}(${string})${string}returns (${infer Return})`
+		? CommaSplit<Return> : never
+	: any;
+
+type InferFunctionReturn<
+  InterfaceType extends InterfaceArg,
+  MethodName extends InferFunctions<InterfaceType>,
+  Return extends any
+> = InterfaceType extends ReadonlyArray<string>
+  ? (InterfaceType[number] & `function ${MethodName}(${string})${string}returns (${string})`) extends `function ${MethodName}(${string})${infer Modifiers}returns (${string})`
+    ? Modifiers extends `${string}${'pure' | 'constant' | 'view'}${string}` ? Return : ContractTransactionResponse
+    : never
+  : any;
+
+type InferMethod__<
+  InterfaceType extends InterfaceArg,
+  MethodName extends InferFunctions<InterfaceType>,
+  // for internal use, dont pass these in
+  Args extends InferArgs<InterfaceType, MethodName> = InferArgs<InterfaceType, MethodName>,
+  Return = InferReturn<InterfaceType, MethodName>
+> = ContractMethod<Args, Return, InferFunctionReturn<InterfaceType, MethodName, Return>>
+
+type InferMethod<
+  InterfaceType extends InterfaceArg,
+  MethodName extends InferFunctions<InterfaceType>
+> = InferMethod__<InterfaceType, MethodName>;
 const passProperties = [ "then" ];
 export class BaseContract<InterfaceType extends InterfaceArg = InterfaceArg> implements Addressable, EventEmitterable<ContractEventName> {
     /**
@@ -884,7 +1073,7 @@ export class BaseContract<InterfaceType extends InterfaceArg = InterfaceArg> imp
      *  when using a Contract programatically.
      */
     getFunction<MethodName extends InferFunctions<InterfaceType>, 
-    T extends ContractMethod<InferArgs<InterfaceType, MethodName>> = ContractMethod<InferArgs<InterfaceType, MethodName>>>(key: MethodName | FunctionFragment): T {
+      T extends InferMethod<InterfaceType, MethodName> = InferMethod<InterfaceType, MethodName>>(key: MethodName | FunctionFragment): T {
         if (typeof(key) !== "string") { key = key.format(); }
         const func = buildWrappedMethod(this, key);
         return <T>func;
@@ -1099,9 +1288,25 @@ function _ContractBase(): new <InterfaceType extends InterfaceArg = InterfaceArg
  *  A [[BaseContract]] with no type guards on its methods or events.
  */
 export class Contract<InterfaceType extends InterfaceArg = InterfaceArg> extends _ContractBase()<InterfaceType> { }
-
-// const h = new Contract("0x0", ["function hiya() external returns (uint256)", "function balanceOf(address, uint256) view returns (uint256)"] as const);
-// type Args2 = typeof h.getFunction;
-// type Args3 = InferArgs< ["function hiya() external returns (uint256)", "function balanceOf(address, uint256) view returns (uint256)"], 'balanceOf'>
-// type A = ContractMethodArgs<Args3>
-// let a = h.getFunction("balanceOf");a("0x0", 1).then((a) => a[0].toHexString())
+const abi = [
+  // Constructor
+  "constructor(string symbol, string name)",
+  // State mutating method
+  "function transferFrom(address from, address to, uint amount)",
+  // State mutating method, which is payable
+  "function mint(uint amount) payable",
+  // Constant method (i.e. "view" or "pure")
+  "function balanceOf(address owner) view returns (uint)",
+  // An Event
+  "event Transfer(address indexed from, address indexed to, uint256 amount)",
+  // A Custom Solidity Error
+  "error AccountLocked(address owner, uint256 balance)",
+  // Examples with structured types
+  "function addUser(tuple(string name, address addr) user) returns (uint id)",
+  "function addUsers(tuple(string name, address addr)[] user) returns (uint[] id)",
+  "function getUser(uint id) view returns (tuple(string name, address addr) user)"
+] as const
+const h = new Contract("0x0", abi);
+type Args2 = typeof h.getFunction;let j = h.getFunction('getUser');
+type Ret = ReturnType<typeof j>
+type H = InferArgs<typeof abi, 'addUser'>
